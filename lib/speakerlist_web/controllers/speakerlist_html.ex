@@ -10,4 +10,9 @@ defmodule SpeakerlistWeb.SpeakerlistHTML do
     <h2>Hello World, from <%= @messenger %>!</h2>
     """
   end
+
+  def time(assigns) do
+    ~H"
+    <%= DateTime.to_time(DateTime.utc_now()) %>"
+  end
 end

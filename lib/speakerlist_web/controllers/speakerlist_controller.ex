@@ -6,6 +6,8 @@ defmodule SpeakerlistWeb.SpeakerlistController do
   end
 
   def show(conn, %{"messenger" => messenger}) do
-    render(conn, :show, messenger: messenger)
+    conn
+    |> assign(:messenger, messenger)
+    |> render(:show)
   end
 end

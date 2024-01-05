@@ -2,7 +2,7 @@
   <.greet messenger={@messenger} />
   <p>Time is <%= DateTime.utc_now()%> </p>
   <p> <.time /> </p>
-  <.input type={"checkbox"} value={:nil} name={"inputfield"} id={"as"} label={"hi"} prompt={"hallo"} />
+  <.input value={:nil} name="inputfield" id="as" label="hi" prompt="Input name" />
   <.table rows={[%{name: "Kenobi", type: "Jedi", status: "Alive"}, %{name: "General Grievous", type: "Villain", status: "Dead"}]} id={"tabell"}>
     <:col :let={person} label="Name">
       <%= person.name%>

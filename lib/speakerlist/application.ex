@@ -20,6 +20,12 @@ defmodule Speakerlist.Application do
       # {Speakerlist.Worker, arg}
     ]
 
+    {:ok, _} = Registry.start_link(keys: :unique, name: Registry.Agents)
+    stats_name = {:via, Registry, {Registry.Agents, "stats"}}
+    topics_name = {:via, Registry, {Registry.Agents, "topics"}}
+    TopicStack.start_link(name: topics_name)
+    Stats.start_link(name: stats_name)
+
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Speakerlist.Supervisor]

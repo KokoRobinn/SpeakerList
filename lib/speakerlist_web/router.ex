@@ -20,6 +20,7 @@ defmodule SpeakerlistWeb.Router do
     get "/", PageController, :home
     get "/hello", SpeakerlistController, :index
     get "/hello/:messenger", SpeakerlistController, :show
+    live "/speakerlist", SpeakerlistLive
 
   end
 

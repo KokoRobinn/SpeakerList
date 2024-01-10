@@ -28,12 +28,11 @@ require ListData
     end
   end
 
-  @spec peek_topic(pid()) :: ListData.list_data()
-  def peek_topic(agent) do
-    Agent.get(agent, fn l -> safe_peek(l, fn pid -> pid end) end)
+  defp peek_topic(agent) do
+    topic = Agent.get(agent, fn l -> safe_peek(l, & &1) end)
   end
 
-  @spec peek_name(pid()) :: String.t()
+  @spec peek_name(pid() | {:via, atom(), any()}) :: String.t()
   def peek_name(agent) do
     Agent.get(agent, fn l -> safe_peek(l, &Topic.name/1) end)
   end
@@ -44,6 +43,11 @@ require ListData
 
   def peek_sec(agent) do
     Agent.get(agent, fn l -> safe_peek(l, &Topic.secondary/1) end)
+  end
+
+  def add_speaker(agent, name) do
+    topic = peek_topic(agent)
+    Topic.add_speaker(topic, name)
   end
 
   defp safe_peek(list, fun) do

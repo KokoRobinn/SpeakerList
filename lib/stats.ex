@@ -10,13 +10,17 @@ defmodule Stats do
   """
   @spec speaker_start(pid(), binary()) :: integer()
   def speaker_start(stats, name) do
-    Agent.update(stats, &Map.update(&1, name, {1,0}, fn {count, time} -> {count + 1, time} end))
-    {_count, time} = Agent.get(stats, &Map.get(&1, name))
+    Agent.update(stats, &Map.update(&1, name, %{name: name, count: 1, time: 0}, fn %{count: count} = map -> %{map | count: count + 1} end))
+    %{time: time} = Agent.get(stats, &Map.get(&1, name))
     time
   end
 
-  @spec get_count_and_time(pid(), binary()) :: {integer(), float()}
-  def get_count_and_time(stats, name) do
+  @spec get_speaker(pid(), binary()) :: map()
+  def get_speaker(stats, name) do
     Agent.get(stats, &Map.get(&1, name))
+  end
+
+  def get_all_speakers(stats) do
+    Agent.get(stats, &Map.values(&1))
   end
 end

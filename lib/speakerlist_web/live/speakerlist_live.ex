@@ -49,10 +49,6 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     }
   end
 
-  def handle_event("validate", _params, socket) do
-    {:noreply, assign(socket, :form, to_form(%{}))}
-  end
-
   def handle_event("inc_temperature", _params, socket) do
     {:noreply, update(socket, :temperature, &(&1 + 1))}
   end

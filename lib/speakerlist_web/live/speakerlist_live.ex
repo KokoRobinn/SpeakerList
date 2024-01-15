@@ -3,34 +3,58 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
 
   def render(assigns) do
     ~H"""
-    <button phx-click="dec_temperature">-</button>
-    Current temperature: <%= @temperature %>°C
-    <button phx-click="inc_temperature">+</button>
-    <br/>
-    <br/>
-    <.table rows={@list} id={"tabell"}>
-      <:col :let={person} label="Name">
-        <%= person%>
-      </:col>
-    </.table>
-    <.simple_form for={@form} phx-submit="save">
-      <.input field={@form[:name]} label="Namn" autocomplete="off"/>
-      <:actions>
-        <.button>Save</.button>
-      </:actions>
-    </.simple_form>
+    <div>
+      <.table rows={@prim} id={"table-prim"}>
+        <:col :let={person} label="Prio-kö">
+          <%= person%>
+        </:col>
+      </.table>
+      <.table rows={@sec} id={"table-sec"}>
+        <:col :let={person} label="Kö">
+          <%= person%>
+        </:col>
+      </.table>
+      <.simple_form for={@form} phx-submit="save" class="align-baselign">
+        <.input field={@form[:name]} label="Namn" autocomplete="off"/>
+        <:actions>
+          <.button>Save</.button>
+        </:actions>
+      </.simple_form>
+    </div>
+    <div class="h-56 grid grid-cols-3 gap-4 content-start">
+      <.table rows={@stats} id={"table-stats-time"}>
+        <:col :let={person} label="Taletid">
+          <%= person.name%>
+        </:col>
+        <:col :let={person} label="">
+          <%= person.time%>
+        </:col>
+      </.table>
+      <.table rows={@stats} id={"table-stats-count"}>
+        <:col :let={person} label="Gånger i talarstolen">
+          <%= person.name%>
+        </:col>
+        <:col :let={person} label="">
+          <%= person.count%>
+        </:col>
+      </.table>
+    </div>
     """
   end
 
   def mount(_params, _session, socket) do
-    temperature = 20 # Let's assume a fixed temperature for now
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
+    stats_name = {:via, Registry, {Registry.Agents, "stats"}}
+    stats = Stats.get_all_speakers(stats_name)
     prim = TopicStack.peek_prim(topics_name)
+    sec = TopicStack.peek_sec(topics_name)
+    sec_list = :queue.to_list(sec)
     prim_list = :queue.to_list(prim)
     {:ok,
       socket
-      |> assign(:temperature, temperature)
-      |> assign(:list, prim_list)
+      |> assign(:prim, prim_list)
+      |> assign(:sec, sec_list)
+      |> assign(:stats, stats)
       |> assign(:form, to_form(%{"name" => ""}))
       |> assign(:inner_block, "")
       #|> assign(:as, :name)
@@ -38,22 +62,17 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
   end
 
   def handle_event("save", %{"name" => name}, socket) do
-    IO.puts("saving")
+    if name == "" do
+      {:noreply, socket}
+    else
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     TopicStack.add_speaker(topics_name, name)
     prim = TopicStack.peek_prim(topics_name)
     prim_list = :queue.to_list(prim)
     {:noreply, socket
       |> assign(:form, to_form(%{}))
-      |> assign(:list, prim_list)
+      |> assign(:prim, prim_list)
     }
-  end
-
-  def handle_event("inc_temperature", _params, socket) do
-    {:noreply, update(socket, :temperature, &(&1 + 1))}
-  end
-
-  def handle_event("dec_temperature", _params, socket) do
-    {:noreply, update(socket, :temperature, &(&1 - 1))}
+    end
   end
 end

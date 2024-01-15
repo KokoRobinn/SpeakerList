@@ -17,10 +17,10 @@ defmodule SpeakerlistWeb.Router do
   scope "/", SpeakerlistWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    #get "/", PageController, :home
     get "/hello", SpeakerlistController, :index
     get "/hello/:messenger", SpeakerlistController, :show
-    live "/speakerlist", SpeakerlistLive
+    live "/", SpeakerlistLive
 
   end
 

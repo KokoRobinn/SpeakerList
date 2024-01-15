@@ -1,6 +1,6 @@
 # Speakerlist
 
-A speakerlist for the division meetings at the [computer science division](https//:www.dtek.se) at Chalmers. Made using the [Phoenix framework](https://www.phoenixframework.org/).
+A speakerlist for the division meetings at the [computer science division](https://www.dtek.se) at Chalmers. Made using the [Phoenix framework](https://www.phoenixframework.org/).
 
 ## Prerequisites
 

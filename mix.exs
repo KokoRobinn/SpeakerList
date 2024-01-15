@@ -47,7 +47,8 @@ defmodule Speakerlist.MixProject do
       {:gettext, "~> 0.20"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:queue, "~> 0.1.0"}
+      {:queue, "~> 0.1.0"},
+      {:tz, "~> 0.26.5"}
     ]
   end
 

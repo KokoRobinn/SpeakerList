@@ -3,15 +3,15 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
 
   def render(assigns) do
     ~H"""
-    <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start" phx-key-down>
+    <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start" phx-window-keyup="key">
       <div>
         <.table rows={@prim} id="table-prim">
-          <:col :let={person} label="Prio-kö">
+          <:col :let={person} label="Näst på tur">
             <%= person%>
           </:col>
         </.table>
         <.table rows={@sec} id="table-sec">
-          <:col :let={person} label="Kö">
+          <:col :let={person} label="">
             <%= person%>
           </:col>
         </.table>
@@ -44,6 +44,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
   def mount(_params, _session, socket) do
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     stats_name = {:via, Registry, {Registry.Agents, "stats"}}
+
     stats = [%{name: "banan", count: 2, time: 1.23}]#Stats.get_all_speakers(stats_name)
     prim = TopicStack.peek_prim(topics_name)
     sec = TopicStack.peek_sec(topics_name)
@@ -56,6 +57,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       |> assign(:stats, stats)
       |> assign(:form, to_form(%{"name" => ""}))
       |> assign(:inner_block, "")
+      |> assign(:speaker_time, 0)
       #|> assign(:as, :name)
     }
   end
@@ -73,5 +75,17 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       |> assign(:prim, prim_list)
     }
     end
+  end
+
+  def handle_event("key", %{"key" => "§"}, socket) do
+    topics_name = {:via, Registry, {Registry.Agents, "topics"}}
+    stats_name = {:via, Registry, {Registry.Agents, "stats"}}
+
+
+  end
+
+  def handle_event("key", %{"key" => key}, socket) do
+    IO.puts(key)
+    {:noreply, socket}
   end
 end

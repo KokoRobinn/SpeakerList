@@ -33,15 +33,15 @@ defmodule Topic do
     {:list_data, _name, primary, secondary, _spoken} = Agent.get(agent, fn state -> state end)
     case {:queue.len(primary), :queue.len(secondary)} do
       {0, 0} ->
-        {:ok, :nil}
+        {:error, :nil}
       {0, _sec} ->
         {{:value, speaker}, new_secondary} = :queue.out(secondary)
         Agent.update(agent, &list_data(&1, secondary: new_secondary))
-        {:ok, speaker}
+        {:sec, {speaker, :queue.to_list(new_secondary)}}
       {_prim, _sec} ->
         {{:value, speaker}, new_primary} = :queue.out(primary)
         Agent.update(agent, &list_data(&1, primary: new_primary))
-        {:ok, speaker}
+        {:prim, {speaker, :queue.to_list(new_primary)}}
     end
   end
 
@@ -51,10 +51,12 @@ defmodule Topic do
 
   def primary(agent) do
     Agent.get(agent, &list_data(&1, :primary))
+    |> :queue.to_list()
   end
 
   def secondary(agent) do
     Agent.get(agent, &list_data(&1, :secondary))
+    |> :queue.to_list()
   end
 
   def has_spoken?(agent, speaker) do

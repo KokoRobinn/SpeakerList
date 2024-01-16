@@ -1,4 +1,5 @@
 defmodule SpeakerlistWeb.SpeakerlistLive do
+  alias Phoenix.LiveView
   use SpeakerlistWeb, :live_view
 
   def render(assigns) do
@@ -45,15 +46,13 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     stats_name = {:via, Registry, {Registry.Agents, "stats"}}
 
-    stats = [%{name: "banan", count: 2, time: 1.23}]#Stats.get_all_speakers(stats_name)
+    stats = Stats.get_all_speakers(stats_name)
     prim = TopicStack.peek_prim(topics_name)
     sec = TopicStack.peek_sec(topics_name)
-    sec_list = :queue.to_list(sec)
-    prim_list = :queue.to_list(prim)
     {:ok,
       socket
-      |> assign(:prim, prim_list)
-      |> assign(:sec, sec_list)
+      |> assign(:prim, prim)
+      |> assign(:sec, sec)
       |> assign(:stats, stats)
       |> assign(:form, to_form(%{"name" => ""}))
       |> assign(:inner_block, "")
@@ -69,10 +68,11 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     TopicStack.add_speaker(topics_name, name)
     prim = TopicStack.peek_prim(topics_name)
-    prim_list = :queue.to_list(prim)
+    sec = TopicStack.peek_sec(topics_name)
     {:noreply, socket
       |> assign(:form, to_form(%{}))
-      |> assign(:prim, prim_list)
+      |> assign(:prim, prim)
+      |> assign(:sec, sec)
     }
     end
   end
@@ -81,7 +81,23 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     stats_name = {:via, Registry, {Registry.Agents, "stats"}}
 
-
+    case TopicStack.dequeue_speaker(topics_name) do
+      {:error, :nil} -> IO.puts(:stderr, "Cannot dequeue speaker, queue is empty")
+      {:sec, {speaker, sec}} ->
+        stats = Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)
+        {:noreply, socket
+          |> assign(:form, to_form(%{}))
+          |> assign(:sec, sec)
+          |> assign(:stats, stats)
+        }
+      {:prim, {speaker, prim}} ->
+        stats = Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)
+        {:noreply, socket
+          |> assign(:form, to_form(%{}))
+          |> assign(:prim, prim)
+          |> assign(:stats, stats)
+        }
+    end
   end
 
   def handle_event("key", %{"key" => key}, socket) do

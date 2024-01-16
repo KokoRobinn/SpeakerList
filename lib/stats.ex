@@ -4,15 +4,16 @@ defmodule Stats do
   end
 
   @doc """
-  Takes the PID of a stats agent as well as a name in the form of a
-  string and then returns the time the speaker has recorded as well
-  as updates the number times the speaker has spoken
+  Takes the PID of a stats agent as well as a name and a time to add
+  and adds the time and increments the count of the speaker. It then returns
+  all stats
   """
-  @spec speaker_start(pid(), binary()) :: integer()
-  def speaker_start(stats, name) do
-    Agent.update(stats, &Map.update(&1, name, %{name: name, count: 1, time: 0}, fn %{count: count} = map -> %{map | count: count + 1} end))
-    %{time: time} = Agent.get(stats, &Map.get(&1, name))
-    time
+  @spec speaker_add_time(pid(), binary(), float()) :: map()
+  def speaker_add_time(stats, name, new_time) do
+    Agent.update(stats, &Map.update(&1, name, %{name: name, count: 1, time: new_time},
+      fn %{count: count, time: time} = map -> %{map | count: count + 1, time: time + new_time} end))
+
+    Agent.get(stats, &Map.values(&1))
   end
 
   @spec get_speaker(pid(), binary()) :: map()

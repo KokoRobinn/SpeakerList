@@ -21,7 +21,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
         </.simple_form>
       </div>
       <div class="h-56 grid grid-cols-2 gap-4 content-start">
-        <.table rows={@stats} id={"table-stats-time"}>
+        <.table rows={@stats_time} id={"table-stats-time"}>
           <:col :let={person} label="Talartid">
             <%= person.name%>
           </:col>
@@ -29,7 +29,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
             <%= person.time%>
           </:col>
         </.table>
-        <.table rows={@stats} id={"table-stats-count"}>
+        <.table rows={@stats_count} id={"table-stats-count"}>
           <:col :let={person} label="Gånger i talarstolen">
             <%= person.name%>
           </:col>
@@ -53,7 +53,8 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       socket
       |> assign(:prim, prim)
       |> assign(:sec, sec)
-      |> assign(:stats, stats)
+      |> assign(:stats_time, Enum.sort(stats, &(&1.time >= &2.time)))
+      |> assign(:stats_count, Enum.sort(stats, &(&1.count >= &2.count)))
       |> assign(:form, to_form(%{"name" => ""}))
       |> assign(:inner_block, "")
       |> assign(:speaker_time, 0)
@@ -80,22 +81,26 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
   def handle_event("key", %{"key" => "§"}, socket) do
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     stats_name = {:via, Registry, {Registry.Agents, "stats"}}
-
+    IO.inspect(socket)
     case TopicStack.dequeue_speaker(topics_name) do
-      {:error, :nil} -> IO.puts(:stderr, "Cannot dequeue speaker, queue is empty")
+      {:error, :nil} ->
+        IO.puts(:stderr, "Cannot dequeue speaker, queue is empty")
+        {:noreply, socket}
       {:sec, {speaker, sec}} ->
         stats = Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)
         {:noreply, socket
           |> assign(:form, to_form(%{}))
           |> assign(:sec, sec)
-          |> assign(:stats, stats)
+          |> assign(:stats_time, Enum.sort(stats, &(&1.time >= &2.time)))
+          |> assign(:stats_count, Enum.sort(stats, &(&1.count >= &2.count)))
         }
       {:prim, {speaker, prim}} ->
         stats = Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)
         {:noreply, socket
           |> assign(:form, to_form(%{}))
           |> assign(:prim, prim)
-          |> assign(:stats, stats)
+          |> assign(:stats_time, Enum.sort(stats, &(&1.time >= &2.time)))
+          |> assign(:stats_count, Enum.sort(stats, &(&1.count >= &2.count)))
         }
     end
   end

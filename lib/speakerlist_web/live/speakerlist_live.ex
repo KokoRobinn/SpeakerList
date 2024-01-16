@@ -67,7 +67,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       {:noreply, socket}
     else
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
-    TopicStack.add_speaker(topics_name, name)
+    TopicStack.add_speaker(topics_name, capitalize(name))
     prim = TopicStack.peek_prim(topics_name)
     sec = TopicStack.peek_sec(topics_name)
     {:noreply, socket
@@ -108,5 +108,10 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
   def handle_event("key", %{"key" => key}, socket) do
     IO.puts(key)
     {:noreply, socket}
+  end
+
+  @spec capitalize(binary()) :: binary()
+  defp capitalize(<<first::binary-size(1), rest::binary>>) do
+    String.upcase(first) <> rest
   end
 end

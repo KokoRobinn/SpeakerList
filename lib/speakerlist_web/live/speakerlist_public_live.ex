@@ -50,19 +50,23 @@ defmodule SpeakerlistWeb.SpeakerlistPublicLive do
     stats = Stats.get_all_speakers(stats_name)
     prim = TopicStack.peek_prim(topics_name)
     sec = TopicStack.peek_sec(topics_name)
-    {:ok,
-      socket
-      |> assign(:prim, prim)
-      |> assign(:sec, sec)
-      |> assign(:stats_time, Enum.sort(stats, &(&1.time >= &2.time)))
-      |> assign(:stats_count, Enum.sort(stats, &(&1.count >= &2.count)))
-      |> assign(:inner_block, "")
-      |> assign(:speaker_time, 0)
-      #|> assign(:as, :name)
-    }
+    {:ok, assign(socket,
+      prim: prim,
+      sec: sec,
+      stats_time: Enum.sort(stats, &(&1.time >= &2.time)),
+      stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
+      inner_block: "",
+      speaker_time: 0
+    )}
   end
 
-  def handle_event("update", unsigned_params, socket) do
-
+  def handle_event("update", params, socket) do
+    {:ok, assign(socket,
+      prim: params["prim"],
+      sec: params["sec"],
+      stats_time: params["stats_time"],
+      stats_count: params["stats_count"],
+      speaker_time: params["speaker_time"]
+    )}
   end
 end

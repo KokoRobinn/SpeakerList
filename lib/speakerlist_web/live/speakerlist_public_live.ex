@@ -60,13 +60,8 @@ defmodule SpeakerlistWeb.SpeakerlistPublicLive do
     )}
   end
 
-  def handle_event("update", params, socket) do
-    {:ok, assign(socket,
-      prim: params["prim"],
-      sec: params["sec"],
-      stats_time: params["stats_time"],
-      stats_count: params["stats_count"],
-      speaker_time: params["speaker_time"]
-    )}
+  def handle_info(%{topic: @topic, payload: state}, socket) do
+    IO.inspect(socket.assigns)
+    {:noreply, assign(socket, state)}
   end
 end

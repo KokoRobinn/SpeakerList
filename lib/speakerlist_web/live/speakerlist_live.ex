@@ -2,6 +2,8 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
   alias Phoenix.LiveView
   use SpeakerlistWeb, :live_view
 
+  @topic "list"
+
   def render(assigns) do
     ~H"""
     <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start" phx-window-keyup="key">
@@ -49,17 +51,16 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     stats = Stats.get_all_speakers(stats_name)
     prim = TopicStack.peek_prim(topics_name)
     sec = TopicStack.peek_sec(topics_name)
-    {:ok,
-      socket
-      |> assign(:prim, prim)
-      |> assign(:sec, sec)
-      |> assign(:stats_time, Enum.sort(stats, &(&1.time >= &2.time)))
-      |> assign(:stats_count, Enum.sort(stats, &(&1.count >= &2.count)))
-      |> assign(:form, to_form(%{"name" => ""}))
-      |> assign(:inner_block, "")
-      |> assign(:speaker_time, 0)
+    {:ok, assign(socket,
+      prim: prim,
+      sec: sec,
+      stats_time: Enum.sort(stats, &(&1.time >= &2.time)),
+      stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
+      form: to_form(%{"name" => ""}),
+      inner_block: "",
+      speaker_time: 0
       #|> assign(:as, :name)
-    }
+    )}
   end
 
   def handle_event("save", %{"name" => name}, socket) do
@@ -67,51 +68,43 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       {:noreply, socket}
     else
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
-    TopicStack.add_speaker(topics_name, capitalize(name))
+    TopicStack.add_speaker(topics_name, String.capitalize(name))
     prim = TopicStack.peek_prim(topics_name)
     sec = TopicStack.peek_sec(topics_name)
-    {:noreply, socket
-      |> assign(:form, to_form(%{}))
-      |> assign(:prim, prim)
-      |> assign(:sec, sec)
-    }
+    state = [form: to_form(%{}), prim: prim, sec: sec]
+
+    SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
+    {:noreply, assign(socket, state)}
     end
   end
 
-  def handle_event("key", %{"key" => "§"}, socket) do
+  def handle_event("key", %{"key" => "Delete"}, socket) do
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     stats_name = {:via, Registry, {Registry.Agents, "stats"}}
-    IO.inspect(socket)
-    case TopicStack.dequeue_speaker(topics_name) do
+
+    {new_q, stats} = case TopicStack.dequeue_speaker(topics_name) do
       {:error, :nil} ->
         IO.puts(:stderr, "Cannot dequeue speaker, queue is empty")
-        {:noreply, socket}
+        socket.assigns.stats
       {:sec, {speaker, sec}} ->
-        stats = Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)
-        {:noreply, socket
-          |> assign(:form, to_form(%{}))
-          |> assign(:sec, sec)
-          |> assign(:stats_time, Enum.sort(stats, &(&1.time >= &2.time)))
-          |> assign(:stats_count, Enum.sort(stats, &(&1.count >= &2.count)))
-        }
+        {{:sec, sec},
+        Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)}
       {:prim, {speaker, prim}} ->
-        stats = Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)
-        {:noreply, socket
-          |> assign(:form, to_form(%{}))
-          |> assign(:prim, prim)
-          |> assign(:stats_time, Enum.sort(stats, &(&1.time >= &2.time)))
-          |> assign(:stats_count, Enum.sort(stats, &(&1.count >= &2.count)))
-        }
+        {{:prim, prim},
+        Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)}
     end
+    state = [
+      form: to_form(%{}),
+      stats_time: Enum.sort(stats, &(&1.time >= &2.time)),
+      stats_count: Enum.sort(stats, &(&1.count >= &2.count))] ++
+      [new_q]
+
+    SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
+    {:noreply, assign(socket, state)}
   end
 
   def handle_event("key", %{"key" => key}, socket) do
     IO.puts(key)
     {:noreply, socket}
-  end
-
-  @spec capitalize(binary()) :: binary()
-  defp capitalize(<<first::binary-size(1), rest::binary>>) do
-    String.upcase(first) <> rest
   end
 end

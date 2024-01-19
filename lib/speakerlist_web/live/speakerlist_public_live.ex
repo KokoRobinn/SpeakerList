@@ -7,14 +7,32 @@ defmodule SpeakerlistWeb.SpeakerlistPublicLive do
     ~H"""
     <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start">
       <div>
-        <.table rows={@prim} id="table-prim">
-          <:col :let={person} label="Näst på tur">
+        <%= if !Enum.empty?(@prim) do %>
+          <.table rows={@prim} id="table-prim">
+            <:col :let={person} label="Näst på tur">
+              <%= person%>
+            </:col>
+            <:col :let={person} label="">
+              <%= case person == Enum.at(@prim, 0, false) do %>
+                <% true -> %>
+                  <div class="font-bold w-0"><%= :binary.part("#{@speaker_time}", 3, 7)%></div>
+                <% false -> %>
+                  <%= ""%>
+              <% end %>
+            </:col>
+          </.table>
+        <% end %>
+        <.table rows={@sec} id="table-sec">
+          <:col :let={person} label={if Enum.empty?(@prim) do "Näst på tur" else "" end}>
             <%= person%>
           </:col>
-        </.table>
-        <.table rows={@sec} id="table-sec">
           <:col :let={person} label="">
-            <%= person%>
+            <%= case person == Enum.at(@sec, 0, false) && Enum.empty?(@prim) do %>
+              <% true -> %>
+                <div class="font-bold w-0"><%= :binary.part("#{@speaker_time}", 3, 7)%></div>
+              <% false -> %>
+                <%= ""%>
+            <% end %>
           </:col>
         </.table>
       </div>
@@ -55,12 +73,12 @@ defmodule SpeakerlistWeb.SpeakerlistPublicLive do
       stats_time: Enum.sort(stats, &(&1.time >= &2.time)),
       stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
       inner_block: "",
-      speaker_time: 0
+      speaker_time: ~T[00:00:00.0],
+      time: ~T[00:00:00.0]
     )}
   end
 
   def handle_info(%{topic: @topic, payload: state}, socket) do
-    IO.inspect(socket.assigns)
     {:noreply, assign(socket, state)}
   end
 end

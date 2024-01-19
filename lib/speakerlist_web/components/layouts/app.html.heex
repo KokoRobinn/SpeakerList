@@ -8,8 +8,8 @@
         v<%= Application.spec(:speakerlist, :vsn) %>
       </p>
     </div>
-    <div class="font-semibold text-lg">
-      Sektionsmöte <%= DateTime.to_date(DateTime.now!("Europe/Stockholm")) %>
+    <div class="font-semibold text-3xl">
+      <%= :binary.part("#{@time}", 0, 5) %>
     </div>
     <div class="flex items-center gap-2 font-semibold leading-6 text-zinc-900">
       <a href="https://github.com/KokoRobinn/SpeakerList" class="hover:text-zinc-700">

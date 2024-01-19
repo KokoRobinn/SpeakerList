@@ -28,7 +28,6 @@ defmodule Topic do
     end
   end
 
-  @spec dequeue_speaker(pid()) :: {:ok, any()}
   def dequeue_speaker(agent) do
     {:list_data, _name, primary, secondary, _spoken} = Agent.get(agent, fn state -> state end)
     case {:queue.len(primary), :queue.len(secondary)} do

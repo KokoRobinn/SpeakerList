@@ -1,5 +1,4 @@
 defmodule SpeakerlistWeb.SpeakerlistPublicLive do
-  alias Phoenix.LiveView
   use SpeakerlistWeb, :live_view
 
   @topic "list"

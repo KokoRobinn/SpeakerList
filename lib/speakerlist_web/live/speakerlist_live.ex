@@ -27,7 +27,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
             <%= person.name%>
           </:col>
           <:col :let={person} label="">
-            <%= String.pad_leading("#{person.time.minute}", 2, "0") <> ":" <> String.pad_leading("#{person.time.second}", 2, "0")%>
+            <%= :binary.part("#{person.time}", 3, 5)%>
           </:col>
         </.table>
         <.table rows={@stats_count} id={"table-stats-count"}>

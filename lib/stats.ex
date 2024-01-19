@@ -10,9 +10,14 @@ defmodule Stats do
   """
   def speaker_add_time(stats, name, new_time) do
     Agent.update(stats, &Map.update(&1, name, %{name: name, count: 1, time: new_time},
-      fn %{count: count, time: time} = map -> %{map | count: count + 1, time: time + new_time} end))
+      fn %{count: count, time: time} = map -> %{map | count: count + 1, time: Time.add(time, to_seconds(new_time))} end))
 
     Agent.get(stats, &Map.values(&1))
+  end
+
+  @spec to_seconds(Time.t()) :: integer()
+  defp to_seconds(time) do
+    3600 * time.hour + 60 * time.minute + time.second
   end
 
   def get_speaker(stats, name) do

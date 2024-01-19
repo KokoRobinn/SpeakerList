@@ -28,7 +28,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
             <%= person.name%>
           </:col>
           <:col :let={person} label="">
-            <%= person.time%>
+            <%= String.pad_leading("#{person.time.minute}", 2, "0") <> ":" <> String.pad_leading("#{person.time.second}", 2, "0")%>
           </:col>
         </.table>
         <.table rows={@stats_count} id={"table-stats-count"}>
@@ -58,7 +58,8 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
       form: to_form(%{"name" => ""}),
       inner_block: "",
-      speaker_time: 0
+      speaker_time: ~T[00:00:00],
+      paused: true
       #|> assign(:as, :name)
     )}
   end
@@ -78,9 +79,22 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     end
   end
 
+  def handle_event("key", %{"key" => "."}, socket) do
+    state = case socket.assigns.paused do
+      true -> %{speaker_time: Time.add(socket.assigns.speaker_time, -DateTime.to_unix(DateTime.now!("Europe/Stockholm"))), paused: false}
+      false -> %{speaker_time: Time.add(socket.assigns.speaker_time, DateTime.to_unix(DateTime.now!("Europe/Stockholm"))), paused: true}
+    end
+    {:noreply, assign(socket, state)}
+  end
+
   def handle_event("key", %{"key" => "Delete"}, socket) do
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     stats_name = {:via, Registry, {Registry.Agents, "stats"}}
+
+    time = case socket.assigns.paused do
+      true -> socket.assigns.speaker_time
+      false -> Time.add(socket.assigns.speaker_time, DateTime.to_unix(DateTime.now!("Europe/Stockholm")))
+    end
 
     {new_q, stats} = case TopicStack.dequeue_speaker(topics_name) do
       {:error, :nil} ->
@@ -88,15 +102,17 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
         socket.assigns.stats
       {:sec, {speaker, sec}} ->
         {{:sec, sec},
-        Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)}
+        Stats.speaker_add_time(stats_name, speaker, time)}
       {:prim, {speaker, prim}} ->
         {{:prim, prim},
-        Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)}
+        Stats.speaker_add_time(stats_name, speaker, time)}
     end
     state = [
       form: to_form(%{}),
       stats_time: Enum.sort(stats, &(&1.time >= &2.time)),
-      stats_count: Enum.sort(stats, &(&1.count >= &2.count))] ++
+      stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
+      speaker_time: ~T[00:00:00],
+      paused: true] ++
       [new_q]
 
     SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)

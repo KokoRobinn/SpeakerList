@@ -8,14 +8,12 @@ require ListData
     Agent.start_link(fn -> [] end, opts)
   end
 
-  @spec new_topic(pid(), binary()) :: {:ok, pid()}
   def new_topic(agent, name) do
     {:ok, t} = Topic.start_link(name)
     Agent.update(agent, &[t | &1])
     {:ok, t}
   end
 
-  @spec pop_topic(pid()) :: ListData.list_data()
   def pop_topic(agent) do
     Agent.get_and_update(agent, fn l -> pop(l) end)
   end

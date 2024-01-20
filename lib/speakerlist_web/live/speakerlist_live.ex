@@ -9,27 +9,12 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     ~H"""
     <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start" phx-window-keyup="key">
       <div>
-        <%= if !Enum.empty?(@prim) do %>
-          <.table rows={@prim} id="table-prim">
-            <:col :let={person} label="Näst på tur">
-              <%= person%>
-            </:col>
-            <:col :let={person} label="">
-              <%= case person == Enum.at(@prim, 0, false) do %>
-                <% true -> %>
-                  <div class="font-bold w-0"><%= :binary.part("#{@speaker_time}", 3, 7)%></div>
-                <% false -> %>
-                  <%= ""%>
-              <% end %>
-            </:col>
-          </.table>
-        <% end %>
-        <.table rows={@sec} id="table-sec">
-          <:col :let={person} label={if Enum.empty?(@prim) do "Näst på tur" else "" end}>
+        <.table rows={@speakers} id="table-prim">
+          <:col :let={person} label="Näst på tur">
             <%= person%>
           </:col>
           <:col :let={person} label="">
-            <%= case person == Enum.at(@sec, 0, false) && Enum.empty?(@prim) do %>
+            <%= case person == Enum.at(@speakers, 0, false) do %>
               <% true -> %>
                 <div class="font-bold w-0"><%= :binary.part("#{@speaker_time}", 3, 7)%></div>
               <% false -> %>
@@ -70,11 +55,9 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     :timer.send_interval(@interval, self(), :time)
 
     stats = Stats.get_all_speakers(stats_name)
-    prim = TopicStack.peek_prim(topics_name)
-    sec = TopicStack.peek_sec(topics_name)
+    speakers = TopicStack.get_all_speakers(topics_name)
     {:ok, assign(socket,
-      prim: prim,
-      sec: sec,
+      speakers: speakers,
       stats_time: Enum.sort(stats, &(&1.time >= &2.time)),
       stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
       form: to_form(%{"name" => ""}),
@@ -93,9 +76,8 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     else
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     TopicStack.add_speaker(topics_name, String.capitalize(name))
-    prim = TopicStack.peek_prim(topics_name)
-    sec = TopicStack.peek_sec(topics_name)
-    state = [form: to_form(%{}), prim: prim, sec: sec]
+    speakers = TopicStack.get_all_speakers(topics_name)
+    state = [form: to_form(%{}), speakers: speakers]
 
     SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
     {:noreply, assign(socket, state)}
@@ -103,12 +85,12 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
   end
 
   def handle_event("key", %{"key" => "."}, socket) do
-    state = case socket.assigns.paused && (!Enum.empty?(socket.assigns.prim) || !Enum.empty?(socket.assigns.sec)) do
+    state = case socket.assigns.paused && !Enum.empty?(socket.assigns.speakers) do
       true ->
         {:ok, ref} = :timer.send_interval(@timer_interval, self(), :tick)
         %{timer: ref, paused: false}
       false ->
-        IO.inspect(:timer.cancel(socket.assigns.timer))
+        :timer.cancel(socket.assigns.timer)
         %{paused: true}
     end
     {:noreply, assign(socket, state)}
@@ -118,26 +100,25 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     stats_name = {:via, Registry, {Registry.Agents, "stats"}}
 
-    if socket.assigns.paused, do: :timer.cancel(socket.assigns.timer)
+    if !socket.assigns.paused, do: :timer.cancel(socket.assigns.timer)
 
-    {new_q, stats} = case TopicStack.dequeue_speaker(topics_name) do
+    {new_speakers, stats} = case TopicStack.dequeue_speaker(topics_name) do
       {:error, :nil} ->
         IO.puts(:stderr, "Cannot dequeue speaker, queue is empty")
         socket.assigns.stats
-      {:sec, {speaker, sec}} ->
-        {{:sec, sec},
-        Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)}
-      {:prim, {speaker, prim}} ->
-        {{:prim, prim},
+      {speaker, speakers} ->
+        {speakers,
         Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)}
     end
+
     state = [
       form: to_form(%{}),
-      stats_time: Enum.sort(stats, &(&1.time >= &2.time)),
+      stats_time: Enum.sort(stats, &case Time.compare(&1.time, &2.time) do :gt -> true;  _ -> false end),
       stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
       speaker_time: ~T[00:00:00.0],
-      paused: true] ++
-      [new_q]
+      paused: true,
+      speakers: new_speakers
+    ]
 
     SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
     {:noreply, assign(socket, state)}

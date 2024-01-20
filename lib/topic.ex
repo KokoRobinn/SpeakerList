@@ -36,11 +36,11 @@ defmodule Topic do
       {0, _sec} ->
         {{:value, speaker}, new_secondary} = :queue.out(secondary)
         Agent.update(agent, &list_data(&1, secondary: new_secondary))
-        {:sec, {speaker, :queue.to_list(new_secondary)}}
+        {speaker, :queue.to_list(primary) ++ :queue.to_list(new_secondary)}
       {_prim, _sec} ->
         {{:value, speaker}, new_primary} = :queue.out(primary)
         Agent.update(agent, &list_data(&1, primary: new_primary))
-        {:prim, {speaker, :queue.to_list(new_primary)}}
+        {speaker, :queue.to_list(new_primary) ++ :queue.to_list(secondary)}
     end
   end
 

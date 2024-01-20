@@ -45,6 +45,10 @@ require ListData
     Agent.get(agent, fn l -> safe_peek(l, &Topic.secondary/1, %{}) end)
   end
 
+  def get_all_speakers(agent) do
+    peek_prim(agent) ++ peek_sec(agent)
+  end
+
   defp safe_peek(list, fun, fail) do
     case list do
       [head | _tail] ->

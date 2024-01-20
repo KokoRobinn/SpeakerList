@@ -7,27 +7,12 @@ defmodule SpeakerlistWeb.SpeakerlistPublicLive do
     ~H"""
     <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start">
       <div>
-        <%= if !Enum.empty?(@prim) do %>
-          <.table rows={@prim} id="table-prim">
-            <:col :let={person} label="Näst på tur">
-              <%= person%>
-            </:col>
-            <:col :let={person} label="">
-              <%= case person == Enum.at(@prim, 0, false) do %>
-                <% true -> %>
-                  <div class="font-bold w-0"><%= :binary.part("#{@speaker_time}", 3, 7)%></div>
-                <% false -> %>
-                  <%= ""%>
-              <% end %>
-            </:col>
-          </.table>
-        <% end %>
-        <.table rows={@sec} id="table-sec">
-          <:col :let={person} label={if Enum.empty?(@prim) do "Näst på tur" else "" end}>
+        <.table rows={@speakers} id="table-prim">
+          <:col :let={person} label="Näst på tur">
             <%= person%>
           </:col>
           <:col :let={person} label="">
-            <%= case person == Enum.at(@sec, 0, false) && Enum.empty?(@prim) do %>
+            <%= case person == Enum.at(@speakers, 0, false) do %>
               <% true -> %>
                 <div class="font-bold w-0"><%= :binary.part("#{@speaker_time}", 3, 7)%></div>
               <% false -> %>
@@ -68,8 +53,7 @@ defmodule SpeakerlistWeb.SpeakerlistPublicLive do
     prim = TopicStack.peek_prim(topics_name)
     sec = TopicStack.peek_sec(topics_name)
     {:ok, assign(socket,
-      prim: prim,
-      sec: sec,
+      speakers: prim ++ sec,
       stats_time: Enum.sort(stats, &(&1.time >= &2.time)),
       stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
       inner_block: "",

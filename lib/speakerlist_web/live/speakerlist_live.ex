@@ -22,7 +22,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
             <% end %>
           </:col>
         </.table>
-        <.simple_form for={@form} phx-submit="save" class="absolute bottom-20 w-5/12">
+        <.simple_form for={@form} phx-submit="save" class="absolute bottom-20 w-5/12" phx-change="validate">
           <.input field={@form[:name]} label="Namn" autocomplete="off" autofocus="true"/>
         </.simple_form>
       </div>
@@ -70,6 +70,11 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     )}
   end
 
+  def handle_event("validate", %{"name" => name}, socket) do
+    state = IO.inspect(to_form(%{"name" => String.replace(name, ~r/['.§+-]+/, "")}))
+    {:noreply, assign(socket, :form, state)}
+  end
+
   def handle_event("save", %{"name" => name}, socket) do
     if name == "" do
       {:noreply, socket}
@@ -77,7 +82,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     TopicStack.add_speaker(topics_name, String.capitalize(name))
     speakers = TopicStack.get_all_speakers(topics_name)
-    state = [form: to_form(%{}), speakers: speakers]
+    state = [form: to_form(%{"name" => ""}), speakers: speakers]
 
     SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
     {:noreply, assign(socket, state)}
@@ -93,7 +98,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
         :timer.cancel(socket.assigns.timer)
         %{paused: true}
     end
-    {:noreply, assign(socket, state)}
+    {:noreply, assign(socket, Map.put(state, :form, to_form(%{"name" => ""})))}
   end
 
   def handle_event("key", %{"key" => "Delete"}, socket) do
@@ -105,7 +110,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     {new_speakers, stats} = case TopicStack.dequeue_speaker(topics_name) do
       {:error, :nil} ->
         IO.puts(:stderr, "Cannot dequeue speaker, queue is empty")
-        socket.assigns.stats
+        {socket.assigns.speakers, Stats.get_all_speakers(stats_name)}
       {speaker, speakers} ->
         {speakers,
         Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)}

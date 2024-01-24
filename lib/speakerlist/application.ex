@@ -25,7 +25,7 @@ defmodule Speakerlist.Application do
     topics_name = {:via, Registry, {Registry.Agents, "topics"}}
     TopicStack.start_link(name: topics_name)
     Stats.start_link(name: stats_name)
-    {:ok, _} = TopicStack.new_topic(topics_name, "first")
+    {:ok, _} = TopicStack.new_topic(topics_name, "Inget Ämne")
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

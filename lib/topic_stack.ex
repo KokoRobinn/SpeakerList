@@ -18,11 +18,11 @@ require ListData
     Agent.get_and_update(agent, fn l -> pop(l) end)
   end
 
-  defp pop(list) do
+  def pop(list) do
     case list do
-      [head | tail]->
-        {head, tail}
-      _ -> {:nil, []}
+      [_head | [throat | tail]]->
+        {:ok, [throat | tail]}
+      _ -> {:error, []}
     end
   end
 
@@ -32,15 +32,15 @@ require ListData
 
   @spec peek_name(pid() | {:via, atom(), any()}) :: String.t()
   def peek_name(agent) do
-    Agent.get(agent, fn l -> safe_peek(l, &Topic.name/1, "Inget ämne") end)
+    Agent.get(agent, fn l -> safe_peek(l, &Topic.name/1, "") end)
   end
 
   def peek_prim(agent) do
-    Agent.get(agent, fn l -> safe_peek(l, &Topic.primary/1, %{}) end)
+    Agent.get(agent, fn l -> safe_peek(l, &Topic.primary/1, []) end)
   end
 
   def peek_sec(agent) do
-    Agent.get(agent, fn l -> safe_peek(l, &Topic.secondary/1, %{}) end)
+    Agent.get(agent, fn l -> safe_peek(l, &Topic.secondary/1, []) end)
   end
 
   def get_all_speakers(agent) do

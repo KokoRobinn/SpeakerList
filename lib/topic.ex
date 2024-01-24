@@ -16,7 +16,7 @@ defmodule Topic do
   Expect :ok
   """
   def add_speaker(agent, speaker) do
-    q = Agent.get(agent, fn state -> state end)
+    q = Agent.get(agent, & &1)
     spoken = list_data(q, :spoken)
     spoken? = Map.get(list_data(q, :spoken), speaker)
     Agent.update(agent, &list_data(&1, spoken: Map.put(spoken, speaker, true)))

@@ -4,13 +4,16 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
   @topic "list"
   @timer_interval 100
   @interval 1000
+  @topics_name {:via, Registry, {Registry.Agents, "topics"}}
+  @stats_name {:via, Registry, {Registry.Agents, "stats"}}
+
 
   def render(assigns) do
     ~H"""
-    <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start" phx-window-keyup="key">
-      <div>
+    <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start" phx-window-keyup={show_modal("new-topic-modal")} phx-key="+">
+      <div phx-window-keyup="key">
         <.table rows={@speakers} id="table-prim">
-          <:col :let={person} label="Näst på tur">
+          <:col :let={person} label={@curr_topic}>
             <%= person%>
           </:col>
           <:col :let={person} label="">
@@ -45,27 +48,31 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
         </.table>
       </div>
     </div>
+    <.modal id="new-topic-modal">
+      <.simple_form for={@modal_form} phx-submit="new-topic">
+        <.input field={@modal_form[:new_topic]} label="Nytt Ämne" autocomplete="off" autofocus="true"/>
+      </.simple_form>
+    </.modal>
     """
   end
 
   def mount(_params, _session, socket) do
-    topics_name = {:via, Registry, {Registry.Agents, "topics"}}
-    stats_name = {:via, Registry, {Registry.Agents, "stats"}}
-
     :timer.send_interval(@interval, self(), :time)
 
-    stats = Stats.get_all_speakers(stats_name)
-    speakers = TopicStack.get_all_speakers(topics_name)
+    stats = Stats.get_all_speakers(@stats_name)
+    speakers = TopicStack.get_all_speakers(@topics_name)
     {:ok, assign(socket,
       speakers: speakers,
       stats_time: Enum.sort(stats, &(&1.time >= &2.time)),
       stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
       form: to_form(%{"name" => ""}),
+      modal_form: to_form(%{"new_topic" => ""}),
       inner_block: "",
       speaker_time: ~T[00:00:00.0],
       time: ~T[00:00:00],
       paused: true,
-      timer: make_ref()
+      timer: make_ref(),
+      curr_topic: TopicStack.peek_name(@topics_name)
       #|> assign(:as, :name)
     )}
   end
@@ -74,14 +81,30 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     if name == "" do
       {:noreply, socket}
     else
-    topics_name = {:via, Registry, {Registry.Agents, "topics"}}
-    TopicStack.add_speaker(topics_name, String.capitalize(name))
-    speakers = TopicStack.get_all_speakers(topics_name)
+    TopicStack.add_speaker(@topics_name, String.capitalize(name))
+    speakers = TopicStack.get_all_speakers(@topics_name)
     state = [form: to_form(%{"name" => ""}), speakers: speakers]
 
     SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
     {:noreply, assign(socket, state)}
     end
+  end
+
+  def handle_event("new-topic", %{"new_topic" => new_topic}, socket) do
+    TopicStack.new_topic(@topics_name, new_topic)
+    {:noreply, assign(socket,
+      curr_topic: TopicStack.peek_name(@topics_name),
+      speakers: TopicStack.get_all_speakers(@topics_name)
+    )}
+  end
+
+  def handle_event("key", %{"key" => "-"}, socket) do
+    state = case TopicStack.pop_topic(@topics_name) do
+      :error -> %{}
+      :ok -> %{curr_topic: TopicStack.peek_name(@topics_name), speakers: TopicStack.get_all_speakers(@topics_name)}
+    end
+    IO.inspect(state)
+    {:noreply, assign(socket, state)}
   end
 
   def handle_event("key", %{"key" => "."}, socket) do
@@ -96,19 +119,16 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     {:noreply, assign(socket, state)}
   end
 
-  def handle_event("key", %{"key" => "Delete"}, socket) do
-    topics_name = {:via, Registry, {Registry.Agents, "topics"}}
-    stats_name = {:via, Registry, {Registry.Agents, "stats"}}
-
+  def handle_event("key", %{"key" => "§"}, socket) do
     if !socket.assigns.paused, do: :timer.cancel(socket.assigns.timer)
 
-    {new_speakers, stats} = case TopicStack.dequeue_speaker(topics_name) do
+    {new_speakers, stats} = case TopicStack.dequeue_speaker(@topics_name) do
       {:error, :nil} ->
         IO.puts(:stderr, "Cannot dequeue speaker, queue is empty")
-        {socket.assigns.speakers, Stats.get_all_speakers(stats_name)}
+        {socket.assigns.speakers, Stats.get_all_speakers(@stats_name)}
       {speaker, speakers} ->
         {speakers,
-        Stats.speaker_add_time(stats_name, speaker, socket.assigns.speaker_time)}
+        Stats.speaker_add_time(@stats_name, speaker, socket.assigns.speaker_time)}
     end
 
     state = [

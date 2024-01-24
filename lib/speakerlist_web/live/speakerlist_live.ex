@@ -22,8 +22,8 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
             <% end %>
           </:col>
         </.table>
-        <.simple_form for={@form} phx-submit="save" class="absolute bottom-20 w-5/12" phx-change="validate">
-          <.input field={@form[:name]} label="Namn" autocomplete="off" autofocus="true"/>
+        <.simple_form for={@form} phx-submit="save" class="absolute bottom-20 w-5/12">
+          <.input field={@form[:name]} label="Namn" autocomplete="off" autofocus="true" phx-hook="ValidateName"/>
         </.simple_form>
       </div>
       <div class="h-56 grid grid-cols-2 gap-4 content-start">
@@ -70,11 +70,6 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     )}
   end
 
-  def handle_event("validate", %{"name" => name}, socket) do
-    state = IO.inspect(to_form(%{"name" => String.replace(name, ~r/['.§+-]+/, "")}))
-    {:noreply, assign(socket, :form, state)}
-  end
-
   def handle_event("save", %{"name" => name}, socket) do
     if name == "" do
       {:noreply, socket}
@@ -98,7 +93,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
         :timer.cancel(socket.assigns.timer)
         %{paused: true}
     end
-    {:noreply, assign(socket, Map.put(state, :form, to_form(%{"name" => ""})))}
+    {:noreply, assign(socket, state)}
   end
 
   def handle_event("key", %{"key" => "Delete"}, socket) do
@@ -129,8 +124,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     {:noreply, assign(socket, state)}
   end
 
-  def handle_event("key", %{"key" => key}, socket) do
-    IO.puts(key)
+  def handle_event("key", _params, socket) do
     {:noreply, socket}
   end
 

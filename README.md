@@ -4,7 +4,7 @@ A speakerlist for the division meetings at the [computer science division](https
 
 ## Prerequisites
 
-Make sure you have Elixir installed. For the installation guide, check out the [phoenix documentation](https://hexdocs.pm/phoenix/installation.html)
+Make sure you have Elixir and Phoenix installed. For the installation guide, check out the [phoenix documentation](https://hexdocs.pm/phoenix/installation.html)
 
 ## Start speakerlist server
 
@@ -14,6 +14,20 @@ To start your the speakerlist:
   * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+
+## Hotkeys
+
+This applications feature hotkeys as opposed to UI elements for most actions. The hotkeys are as follows
+
+* **\+** : Add a new topic to the stack.
+
+* **-** : Pop topic from the stack
+
+* **.** : Start/stop the timer for the current speaker.
+
+* **§** : Dequeue the current speaker.
+
+* **<** : Save the current stats to file. They can be found in `save.json`
 
 ## Learn more
 

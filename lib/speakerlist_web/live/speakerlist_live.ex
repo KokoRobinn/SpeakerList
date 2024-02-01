@@ -144,6 +144,15 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     {:noreply, assign(socket, state)}
   end
 
+  def handle_event("key", %{"key" => "<"}, socket) do
+    prev = Jason.decode!(File.read!("save.json"))
+    new = Stats.get_all_speakers(@stats_name)
+      |> Enum.map(fn person -> {String.to_atom(person.name), Map.delete(person, :name)} end)
+      |> :maps.from_list()
+    File.write!("save.json", Jason.encode!(Map.merge(prev, new), [pretty: true]))
+    {:noreply, socket}
+  end
+
   def handle_event("key", _params, socket) do
     {:noreply, socket}
   end

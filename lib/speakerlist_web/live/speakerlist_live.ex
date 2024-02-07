@@ -48,10 +48,12 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
         </.table>
       </div>
     </div>
-    <.modal id="new-topic-modal">
-      <.simple_form for={@modal_form} phx-submit="new-topic">
-        <.input field={@modal_form[:new_topic]} label="Nytt Ämne" autocomplete="off" autofocus="true"/>
-      </.simple_form>
+    <.modal id="new-topic-modal" >
+      <div phx-window-keyup={hide_modal("new-topic-modal")} phx-key="Enter">
+        <.simple_form for={@modal_form} phx-submit="new-topic">
+          <.input field={@modal_form[:new_topic]} label="Nytt Ämne" autocomplete="off" autofocus="true"/>
+        </.simple_form>
+      </div>
     </.modal>
     """
   end

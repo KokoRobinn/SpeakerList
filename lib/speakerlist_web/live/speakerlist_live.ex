@@ -25,9 +25,11 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
             <% end %>
           </:col>
         </.table>
-        <.simple_form for={@form} phx-submit="save" class="absolute bottom-20 w-5/12">
-          <.input field={@form[:name]} label="Namn" autocomplete="off" autofocus="true" phx-hook="ValidateName"/>
-        </.simple_form>
+        <div>
+          <.simple_form for={@form} phx-submit="save" class="absolute bottom-20 w-5/12">
+            <.input id="name-input" field={@form[:name]} label="Namn" autocomplete="off" autofocus="true" phx-hook="ValidateName" phx-window-keyup={JS.focus()} phx-key="AltGraph"/>
+          </.simple_form>
+        </div>
       </div>
       <div class="h-56 grid grid-cols-2 gap-4 content-start">
         <.table rows={@stats_time} id={"table-stats-time"}>

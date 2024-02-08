@@ -27,7 +27,7 @@ let Hooks = {}
 Hooks.ValidateName = {
   mounted() {
     this.el.addEventListener("input", e => {
-        this.el.value = this.el.value.replace(/['.§+-<]+/g, "")
+        this.el.value = this.el.value.replace(/[.§+-<]+/g, "")
     })
   }
 }

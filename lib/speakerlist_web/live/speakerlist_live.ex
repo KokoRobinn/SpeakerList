@@ -10,53 +10,68 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
 
   def render(assigns) do
     ~H"""
-    <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start" phx-window-keyup={show_modal("new-topic-modal")} phx-key="+">
-      <div phx-window-keyup="key">
-        <.table rows={@speakers} id="table-prim">
-          <:col :let={person} label={@curr_topic}>
-            <%= person%>
-          </:col>
-          <:col :let={person} label="">
-            <%= case person == Enum.at(@speakers, 0, false) do %>
-              <% true -> %>
-                <div class="font-bold w-0"><%= :binary.part("#{@speaker_time}", 3, 7)%></div>
-              <% false -> %>
-                <%= ""%>
-            <% end %>
-          </:col>
-        </.table>
-        <div>
-          <.simple_form for={@form} phx-submit="save" class="absolute bottom-20 w-5/12">
-            <.input id="name-input" field={@form[:name]} label="Namn" autocomplete="off" autofocus="true" phx-hook="ValidateName" phx-window-keyup={JS.focus()} phx-key="AltGraph"/>
-          </.simple_form>
+    <%= if not @adjourned do %>
+      <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start" phx-window-keyup={show_modal("new-topic-modal")} phx-key="+">
+        <div phx-window-keyup="key">
+          <.table rows={@speakers} id="table-prim">
+            <:col :let={person} label={@curr_topic}>
+              <%= person%>
+            </:col>
+            <:col :let={person} label="">
+              <%= case person == Enum.at(@speakers, 0, false) do %>
+                <% true -> %>
+                  <div class="font-bold w-0"><%= :binary.part("#{@speaker_time}", 3, 7)%></div>
+                <% false -> %>
+                  <%= ""%>
+              <% end %>
+            </:col>
+          </.table>
+          <div>
+            <.simple_form for={@form} phx-submit="save" class="absolute bottom-20 w-5/12">
+              <.input id="name-input" field={@form[:name]} label="Namn" autocomplete="off" autofocus="true" phx-hook="ValidateName" phx-window-keyup={JS.focus()} phx-key="AltGraph"/>
+            </.simple_form>
+          </div>
+        </div>
+        <div class="h-56 grid grid-cols-2 gap-4 content-start">
+          <.table rows={@stats_time} id={"table-stats-time"}>
+            <:col :let={person} label="Talartid">
+              <%= person.name%>
+            </:col>
+            <:col :let={person} label="">
+              <%= :binary.part("#{person.time}", 3, 5)%>
+            </:col>
+          </.table>
+          <.table rows={@stats_count} id={"table-stats-count"}>
+            <:col :let={person} label="Gånger i talarstolen">
+              <%= person.name%>
+            </:col>
+            <:col :let={person} label="">
+              <%= person.count%>
+            </:col>
+          </.table>
         </div>
       </div>
-      <div class="h-56 grid grid-cols-2 gap-4 content-start">
-        <.table rows={@stats_time} id={"table-stats-time"}>
-          <:col :let={person} label="Talartid">
-            <%= person.name%>
-          </:col>
-          <:col :let={person} label="">
-            <%= :binary.part("#{person.time}", 3, 5)%>
-          </:col>
-        </.table>
-        <.table rows={@stats_count} id={"table-stats-count"}>
-          <:col :let={person} label="Gånger i talarstolen">
-            <%= person.name%>
-          </:col>
-          <:col :let={person} label="">
-            <%= person.count%>
-          </:col>
-        </.table>
+      <.modal id="new-topic-modal" >
+        <div phx-window-keyup={hide_modal("new-topic-modal")} phx-key="Enter">
+          <.simple_form for={@modal_form} phx-submit="new-topic">
+            <.input field={@modal_form[:new_topic]} label="Nytt Ämne" autocomplete="off" autofocus="true"/>
+          </.simple_form>
+        </div>
+      </.modal>
+    <% else %>
+      <div class="bg-orange-500 text-8xl text-center object-fit font-black rounded-3xl" phx-window-keyup="key">
+        <br>
+        <br>
+        <br>
+        <br>
+        Ajournerat till <%= @adjourn_time %>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
       </div>
-    </div>
-    <.modal id="new-topic-modal" >
-      <div phx-window-keyup={hide_modal("new-topic-modal")} phx-key="Enter">
-        <.simple_form for={@modal_form} phx-submit="new-topic">
-          <.input field={@modal_form[:new_topic]} label="Nytt Ämne" autocomplete="off" autofocus="true"/>
-        </.simple_form>
-      </div>
-    </.modal>
+    <% end %>
     """
   end
 
@@ -76,8 +91,9 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       time: ~T[00:00:00],
       paused: true,
       timer: make_ref(),
-      curr_topic: TopicStack.peek_name(@topics_name)
-      #|> assign(:as, :name)
+      curr_topic: TopicStack.peek_name(@topics_name),
+      adjourned: false,
+      adjourn_time: "00:00"
     )}
   end
 
@@ -96,10 +112,11 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
 
   def handle_event("new-topic", %{"new_topic" => new_topic}, socket) do
     TopicStack.new_topic(@topics_name, new_topic)
-    {:noreply, assign(socket,
-      curr_topic: TopicStack.peek_name(@topics_name),
-      speakers: TopicStack.get_all_speakers(@topics_name)
-    )}
+    new_topic_name = TopicStack.peek_name(@topics_name)
+    new_speakers = TopicStack.get_all_speakers(@topics_name)
+    state = [curr_topic: new_topic_name, speakers: new_speakers]
+    SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
+    {:noreply, assign(socket, state)}
   end
 
   def handle_event("key", %{"key" => "-"}, socket) do
@@ -107,8 +124,14 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       :error -> %{}
       :ok -> %{curr_topic: TopicStack.peek_name(@topics_name), speakers: TopicStack.get_all_speakers(@topics_name)}
     end
-    IO.inspect(state)
+    SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
     {:noreply, assign(socket, state)}
+  end
+
+  def handle_event("key", %{"key" => "Insert"}, socket) do
+    new_value = not socket.assigns.adjourned
+    SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", %{adjourned: new_value, adjourn_time: socket.assigns.adjourn_time})
+    {:noreply, assign(socket, adjourned: new_value)}
   end
 
   def handle_event("key", %{"key" => "."}, socket) do

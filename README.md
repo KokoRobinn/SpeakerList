@@ -17,7 +17,7 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
 ## Hotkeys
 
-This applications feature hotkeys as opposed to UI elements for most actions. The hotkeys are as follows
+This application features hotkeys as opposed to UI elements for most actions. The hotkeys are as follows.
 
 * **\+** : Add a new topic to the stack.
 

@@ -5,7 +5,6 @@ defmodule SpeakerlistWeb.SpeakerlistPublicLive do
 
   def render(assigns) do
     ~H"""
-    <%= if not @adjourned do %>
       <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start">
         <div>
           <.table rows={@speakers} id="table-prim">
@@ -41,20 +40,14 @@ defmodule SpeakerlistWeb.SpeakerlistPublicLive do
           </.table>
         </div>
       </div>
-    <% else %>
-      <div class="bg-orange-500 text-8xl text-center object-fit font-black rounded-3xl" phx-window-keyup="key">
-        <br>
-        <br>
-        <br>
-        <br>
-        Ajournerat till <%= @adjourn_time %>
-        <br>
-        <br>
-        <br>
-        <br>
-        <br>
-      </div>
-    <% end %>
+      <%= if @adjourned do %>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5/12 h-3/4 z-10">
+          <div class="absolute h-full w-full inline-flex animate-ping rounded-full bg-orange-500"></div>
+          <div class="relative inline-flex h-full w-full items-center justify-center text-6xl font-black rounded-full bg-orange-500">
+            Ajournerat till <%= :binary.part("#{@adjourn_time}", 0, 5) %>
+          </div>
+        </div>
+      <% end %>
     """
   end
 

@@ -10,8 +10,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
 
   def render(assigns) do
     ~H"""
-    <%= if not @adjourned do %>
-      <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start" phx-window-keyup={show_modal("new-topic-modal")} phx-key="+">
+      <div class="z-0 px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start" phx-window-keyup={show_modal("new-topic-modal")} phx-key="+">
         <div phx-window-keyup="key">
           <.table rows={@speakers} id="table-prim">
             <:col :let={person} label={@curr_topic}>
@@ -26,13 +25,16 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
               <% end %>
             </:col>
           </.table>
-          <div>
-            <.simple_form for={@form} phx-submit="save" class="absolute bottom-20 w-5/12">
+          <div class="grid grid-cols-2 gap-2 absolute bottom-20 w-2/3">
+            <.simple_form for={@form} phx-submit="save" class="w-full">
               <.input id="name-input" field={@form[:name]} label="Namn" autocomplete="off" autofocus="true" phx-hook="ValidateName" phx-window-keyup={JS.focus()} phx-key="AltGraph"/>
             </.simple_form>
+            <.simple_form for={@adjourn_form} phx-submit="new-adjourn-time" class="w-48">
+              <.input field={@adjourn_form[:new_time]} label="Minuter att ajournera" autocomplete="off" autofocus="true"/>
+          </.simple_form>
           </div>
         </div>
-        <div class="h-56 grid grid-cols-2 gap-4 content-start">
+        <div class="grid grid-cols-2 gap-4 content-start">
           <.table rows={@stats_time} id={"table-stats-time"}>
             <:col :let={person} label="Talartid">
               <%= person.name%>
@@ -50,6 +52,19 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
             </:col>
           </.table>
         </div>
+        <div class="grid grid-cols-2 absolute bottom-[80px] right-[110px] w-5/12 h-40 rounded-lg bg-[#b4b4b4] z-5"></div>
+        <div class="grid grid-cols-2 absolute bottom-[84px] right-[112px] w-5/12 h-40 rounded-lg font-mono text-base/loose whitespace-pre-line bg-[#d8d0da] z-5">
+          <div class="m-5">+ : New topic
+          - : Pop topic
+          . : Start/stop speaker time
+          § : Dequeue speaker
+          </div>
+          <div class="m-5"> &#60 : Save stats to file
+          &#62 : Load stats from file
+          AltGr : Focus name input
+          Insert : Adjourn
+          </div>
+        </div>
       </div>
       <.modal id="new-topic-modal" >
         <div phx-window-keyup={hide_modal("new-topic-modal")} phx-key="Enter">
@@ -58,18 +73,12 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
           </.simple_form>
         </div>
       </.modal>
-    <% else %>
-      <div class="bg-orange-500 text-8xl text-center object-fit font-black rounded-3xl" phx-window-keyup="key">
-        <br>
-        <br>
-        <br>
-        <br>
-        Ajournerat till <%= @adjourn_time %>
-        <br>
-        <br>
-        <br>
-        <br>
-        <br>
+    <%= if @adjourned do %>
+      <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5/12 h-3/4 z-10">
+        <div class="absolute h-full w-full inline-flex animate-ping rounded-full bg-orange-500"></div>
+        <div class="relative inline-flex h-full w-full items-center justify-center text-6xl font-black rounded-full bg-orange-500">
+          Ajournerat till <%= :binary.part("#{@adjourn_time}", 0, 5) %>
+        </div>
       </div>
     <% end %>
     """
@@ -86,6 +95,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
       form: to_form(%{"name" => ""}),
       modal_form: to_form(%{"new_topic" => ""}),
+      adjourn_form: to_form(%{"new_time" => ""}),
       inner_block: "",
       speaker_time: ~T[00:00:00.0],
       time: ~T[00:00:00],
@@ -93,7 +103,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       timer: make_ref(),
       curr_topic: TopicStack.peek_name(@topics_name),
       adjourned: false,
-      adjourn_time: "00:00"
+      adjourn_time: ~T[00:00:00]
     )}
   end
 
@@ -115,6 +125,12 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     new_topic_name = TopicStack.peek_name(@topics_name)
     new_speakers = TopicStack.get_all_speakers(@topics_name)
     state = [curr_topic: new_topic_name, speakers: new_speakers]
+    SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
+    {:noreply, assign(socket, state)}
+  end
+
+  def handle_event("new-adjourn-time", %{"new_time" => new_time}, socket) do
+    state = [adjourn_time: Time.add(socket.assigns.time, elem(Integer.parse(new_time), 0) * 60, :second)]
     SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
     {:noreply, assign(socket, state)}
   end

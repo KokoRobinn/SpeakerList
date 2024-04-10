@@ -29,6 +29,8 @@ This application features hotkeys as opposed to UI elements for most actions. Th
 
 * **<** : Save the current stats to file. They can be found in `save.json`
 
+* **>** : Load stats from `save.json`.
+
 * **AltGr** : Set focus to the name input
 
 * **Insert** : Adjourn

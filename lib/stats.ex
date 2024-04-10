@@ -26,4 +26,10 @@ defmodule Stats do
   def get_all_speakers(stats) do
     Agent.get(stats, &Map.values(&1))
   end
+
+  def set_from_map(stats, map) do
+    newStats = Enum.map(map, fn {name, %{"time" => time, "count" => count}} -> {name, %{name: name, time: Time.from_iso8601!(time), count: count}} end) |> Map.new()
+    IO.inspect(newStats)
+    Agent.update(stats, fn _s -> newStats end)
+  end
 end

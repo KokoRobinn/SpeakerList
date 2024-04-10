@@ -180,6 +180,16 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     {:noreply, socket}
   end
 
+  def handle_event("key", %{"key" => ">"}, socket) do
+    fromFile = File.read!("save.json") |> Jason.decode!()
+    Stats.set_from_map(@stats_name, fromFile)
+    stats = Stats.get_all_speakers(@stats_name)
+    {:noreply, assign(socket,
+      stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
+      stats_time: Enum.sort(stats, &case Time.compare(&1.time, &2.time) do :gt -> true;  _ -> false end))
+    }
+  end
+
   def handle_event("key", _params, socket) do
     {:noreply, socket}
   end

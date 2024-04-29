@@ -8,7 +8,7 @@ Make sure you have Elixir and Phoenix installed. For the installation guide, che
 
 ## Start speakerlist server
 
-To start your the speakerlist:
+To start the speakerlist:
 
   * Run `mix setup` to install and setup dependencies
   * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`

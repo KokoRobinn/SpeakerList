@@ -43,6 +43,10 @@ require ListData
     Agent.get(agent, fn l -> safe_peek(l, &Topic.secondary/1, []) end)
   end
 
+  def peek_curr(agent) do
+    Agent.get(agent, fn s -> safe_peek(s, &Topic.curr/1, nil) end)
+  end
+
   def get_all_speakers(agent) do
     peek_prim(agent) ++ peek_sec(agent)
   end

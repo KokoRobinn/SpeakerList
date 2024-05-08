@@ -12,12 +12,12 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     ~H"""
       <div class="z-0 px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start" phx-window-keyup={show_modal("new-topic-modal")} phx-key="+">
         <div phx-window-keyup="key">
-          <.table rows={@speakers} id="table-prim">
+          <.table rows={[@curr_speaker] ++ @speakers} id="table-prim">
             <:col :let={person} label={@curr_topic}>
               <%= person%>
             </:col>
             <:col :let={person} label="">
-              <%= case person == Enum.at(@speakers, 0, false) do %>
+              <%= case person == @curr_speaker && person != nil do %>
                 <% true -> %>
                   <div class="font-bold w-0"><%= :binary.part("#{@speaker_time}", 3, 7)%></div>
                 <% false -> %>
@@ -98,6 +98,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       adjourn_form: to_form(%{"new_time" => ""}),
       inner_block: "",
       speaker_time: ~T[00:00:00.0],
+      curr_speaker: nil,
       time: ~T[00:00:00],
       paused: true,
       timer: make_ref(),
@@ -111,12 +112,12 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     if name == "" do
       {:noreply, socket}
     else
-    TopicStack.add_speaker(@topics_name, String.capitalize(name))
-    speakers = TopicStack.get_all_speakers(@topics_name)
-    state = [form: to_form(%{"name" => ""}), speakers: speakers]
+      TopicStack.add_speaker(@topics_name, String.capitalize(name))
+      speakers = TopicStack.get_all_speakers(@topics_name)
+      state = [form: to_form(%{"name" => ""}), speakers: speakers, curr_speaker: TopicStack.peek_curr(@topics_name)]
 
-    SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
-    {:noreply, assign(socket, state)}
+      SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
+      {:noreply, assign(socket, state)}
     end
   end
 
@@ -124,7 +125,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
     TopicStack.new_topic(@topics_name, new_topic)
     new_topic_name = TopicStack.peek_name(@topics_name)
     new_speakers = TopicStack.get_all_speakers(@topics_name)
-    state = [curr_topic: new_topic_name, speakers: new_speakers]
+    state = [curr_topic: new_topic_name, speakers: new_speakers, curr_speaker: nil]
     SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
     {:noreply, assign(socket, state)}
   end
@@ -151,7 +152,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
   end
 
   def handle_event("key", %{"key" => "."}, socket) do
-    state = case socket.assigns.paused && !Enum.empty?(socket.assigns.speakers) do
+    state = case socket.assigns.paused && socket.assigns.curr_speaker != nil do
       true ->
         {:ok, ref} = :timer.send_interval(@timer_interval, self(), :tick)
         %{timer: ref, paused: false}
@@ -165,13 +166,16 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
   def handle_event("key", %{"key" => "§"}, socket) do
     if !socket.assigns.paused, do: :timer.cancel(socket.assigns.timer)
 
-    {new_speakers, stats} = case TopicStack.dequeue_speaker(@topics_name) do
-      {:error, :nil} ->
-        IO.puts(:stderr, "Cannot dequeue speaker, queue is empty")
-        {socket.assigns.speakers, Stats.get_all_speakers(@stats_name)}
-      {speaker, speakers} ->
+    {new_speakers, stats, curr} = case {socket.assigns.curr_speaker, TopicStack.dequeue_speaker(@topics_name)} do
+      {nil, _} ->
+        IO.puts("Cannot dequeue speaker, queue is empty")
+        {socket.assigns.speakers,
+        Stats.get_all_speakers(@stats_name),
+        nil}
+      {curr, {speaker, speakers}} ->
         {speakers,
-        Stats.speaker_add_time(@stats_name, speaker, socket.assigns.speaker_time)}
+        Stats.speaker_add_time(@stats_name, curr, socket.assigns.speaker_time),
+        speaker}
     end
 
     state = [
@@ -180,7 +184,8 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
       stats_count: Enum.sort(stats, &(&1.count >= &2.count)),
       speaker_time: ~T[00:00:00.0],
       paused: true,
-      speakers: new_speakers
+      speakers: new_speakers,
+      curr_speaker: curr
     ]
 
     SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)

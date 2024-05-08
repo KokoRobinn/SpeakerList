@@ -74,7 +74,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
         </div>
       </.modal>
     <%= if @adjourned do %>
-      <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5/12 h-3/4 z-10">
+      <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] z-10">
         <div class="absolute h-full w-full inline-flex animate-ping rounded-full bg-orange-500"></div>
         <div class="relative inline-flex h-full w-full items-center justify-center text-6xl font-black rounded-full bg-orange-500">
           Ajournerat till <%= :binary.part("#{@adjourn_time}", 0, 5) %>
@@ -122,10 +122,10 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
   end
 
   def handle_event("new-topic", %{"new_topic" => new_topic}, socket) do
-    TopicStack.new_topic(@topics_name, new_topic)
-    new_topic_name = TopicStack.peek_name(@topics_name)
+    capped_topic = String.capitalize(new_topic)
+    TopicStack.new_topic(@topics_name, capped_topic)
     new_speakers = TopicStack.get_all_speakers(@topics_name)
-    state = [curr_topic: new_topic_name, speakers: new_speakers, curr_speaker: nil]
+    state = [curr_topic: capped_topic, speakers: new_speakers, curr_speaker: nil]
     SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
     {:noreply, assign(socket, state)}
   end
@@ -139,7 +139,7 @@ defmodule SpeakerlistWeb.SpeakerlistLive do
   def handle_event("key", %{"key" => "-"}, socket) do
     state = case TopicStack.pop_topic(@topics_name) do
       :error -> %{}
-      :ok -> %{curr_topic: TopicStack.peek_name(@topics_name), speakers: TopicStack.get_all_speakers(@topics_name)}
+      :ok -> %{curr_topic: TopicStack.peek_name(@topics_name), speakers: TopicStack.get_all_speakers(@topics_name), curr_speaker: TopicStack.peek_curr(@topics_name)}
     end
     SpeakerlistWeb.Endpoint.broadcast_from(self(), @topic, "update", state)
     {:noreply, assign(socket, state)}

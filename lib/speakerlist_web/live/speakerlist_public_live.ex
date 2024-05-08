@@ -7,12 +7,12 @@ defmodule SpeakerlistWeb.SpeakerlistPublicLive do
     ~H"""
       <div class="px-20 mx-auto max-w-full h-56 grid grid-cols-2 gap-20 content-start">
         <div>
-          <.table rows={@speakers} id="table-prim">
+        <.table rows={[@curr_speaker] ++ @speakers} id="table-prim">
             <:col :let={person} label={@curr_topic}>
               <%= person%>
             </:col>
             <:col :let={person} label="">
-              <%= case person == Enum.at(@speakers, 0, false) do %>
+              <%= case person == @curr_speaker && person != nil do %>
                 <% true -> %>
                   <div class="font-bold w-0"><%= :binary.part("#{@speaker_time}", 3, 7)%></div>
                 <% false -> %>
@@ -41,7 +41,7 @@ defmodule SpeakerlistWeb.SpeakerlistPublicLive do
         </div>
       </div>
       <%= if @adjourned do %>
-        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5/12 h-3/4 z-10">
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] z-10">
           <div class="absolute h-full w-full inline-flex animate-ping rounded-full bg-orange-500"></div>
           <div class="relative inline-flex h-full w-full items-center justify-center text-6xl font-black rounded-full bg-orange-500">
             Ajournerat till <%= :binary.part("#{@adjourn_time}", 0, 5) %>
@@ -69,7 +69,8 @@ defmodule SpeakerlistWeb.SpeakerlistPublicLive do
       time: ~T[00:00:00.0],
       adjourned: false,
       adjourn_time: "00:00",
-      curr_topic: "Inget Ämne"
+      curr_topic: "Inget Ämne",
+      curr_speaker: nil
     )}
   end
 

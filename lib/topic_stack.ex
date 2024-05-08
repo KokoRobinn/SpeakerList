@@ -22,7 +22,7 @@ require ListData
     case list do
       [_head | [throat | tail]]->
         {:ok, [throat | tail]}
-      _ -> {:error, []}
+      _ -> {:error, list}
     end
   end
 
